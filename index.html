@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel Data Table</title>
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+    }
+    .link {
+        cursor: pointer;
+        color: blue;
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+<table id="dataTable">
+    <thead>
+        <!-- Table headers will be populated dynamically -->
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<!-- Include ExcelJS library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+
+<script>
+    // Function to fetch data from Excel file
+    function fetchExcelData() {
+        fetch('data.xlsx') // Assuming your Excel file name is 'data.xlsx'
+            .then(response => response.arrayBuffer())
+            .then(buffer => {
+                // Load Excel file using ExcelJS library
+                const workbook = new ExcelJS.Workbook();
+                return workbook.xlsx.load(buffer);
+            })
+            .then(workbook => {
+                const worksheet = workbook.getWorksheet(1); // Assuming data is in first worksheet
+
+                // Get column labels from the first row
+                const columnLabels = worksheet.getRow(1).values.slice(1, 6); // Assuming labels are in first 5 columns
+
+                // Populate table headers
+                const tableHeaders = document.createElement('tr');
+                columnLabels.forEach(label => {
+                    const th = document.createElement('th');
+                    th.textContent = label;
+                    tableHeaders.appendChild(th);
+                });
+                document.querySelector('#dataTable thead').appendChild(tableHeaders);
+
+                // Loop through each row and populate the table
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (rowNumber === 1) return; // Skip the first row
+                    const rowData = row.values.slice(1, 6); // Assuming data is in first 5 columns
+                    const tableRow = document.createElement('tr');
+                    rowData.forEach((cellData, index) => {
+                        const cell = document.createElement('td');
+                        if (index === rowData.length - 1 && cellData.startsWith('http')) { // Check if last column and value is a link
+                            const link = document.createElement('a');
+                            link.href = cellData;
+                            link.target = '_blank';
+                            link.textContent = 'Link';
+                            link.classList.add('link');
+                            cell.appendChild(link);
+                        } else {
+                            cell.textContent = cellData;
+                        }
+                        tableRow.appendChild(cell);
+                    });
+                    document.querySelector('#dataTable tbody').appendChild(tableRow);
+                });
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }
+
+    // Call the function to fetch data when the page loads
+    window.onload = fetchExcelData;
+</script>
+
+</body>
+</html>
